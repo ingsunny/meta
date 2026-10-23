@@ -1,4 +1,5 @@
--- MySQL schema for the analytics + tracker + journey sections.
+-- MySQL schema: accounts/auth, integrations, reports, analytics, and the
+-- archived tracker + journey sections (tables kept so no data is lost).
 -- Run via `npm run db:init` after a fresh phpMyAdmin database is created.
 -- Designed to be idempotent: every statement is CREATE IF NOT EXISTS.
 --
@@ -8,13 +9,116 @@
 -- dumped into `event_data` (or `raw`) as JSON so we never lose a column
 -- even when the upstream provider adds new fields.
 
+-- =============================================================================
+-- Accounts + auth
+-- =============================================================================
+
+CREATE TABLE IF NOT EXISTS users (
+  id              VARCHAR(32)  NOT NULL PRIMARY KEY,
+  email           VARCHAR(255) NOT NULL,
+  name            VARCHAR(120) NOT NULL,
+  password_hash   VARCHAR(255) NOT NULL,
+  created_at      DATETIME     NOT NULL,
+  last_login_at   DATETIME     NULL,
+  UNIQUE KEY uq_users_email (email)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Session id is the SHA-256 of the cookie value, so a leaked table can't be
+-- replayed as a cookie.
+CREATE TABLE IF NOT EXISTS sessions (
+  id              CHAR(64)     NOT NULL PRIMARY KEY,
+  user_id         VARCHAR(32)  NOT NULL,
+  created_at      DATETIME     NOT NULL,
+  expires_at      DATETIME     NOT NULL,
+  user_agent      VARCHAR(512) NULL,
+  ip              VARCHAR(64)  NULL,
+  KEY idx_sessions_user (user_id),
+  KEY idx_sessions_expiry (expires_at),
+  CONSTRAINT fk_sessions_user FOREIGN KEY (user_id)
+    REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- =============================================================================
+-- Integrations: one row per (user, provider). Tokens are AES-256-GCM
+-- encrypted with TOKEN_ENCRYPTION_KEY and never leave the server.
+-- =============================================================================
+
+CREATE TABLE IF NOT EXISTS integrations (
+  id                VARCHAR(32)  NOT NULL PRIMARY KEY,
+  user_id           VARCHAR(32)  NOT NULL,
+  provider          VARCHAR(32)  NOT NULL,
+  external_user_id  VARCHAR(128) NULL,
+  external_name     VARCHAR(255) NULL,
+  access_token_enc  TEXT         NOT NULL,
+  token_expires_at  DATETIME     NULL,
+  scopes            VARCHAR(512) NULL,
+  method            ENUM('oauth','token') NOT NULL DEFAULT 'oauth',
+  status            ENUM('active','expired','error') NOT NULL DEFAULT 'active',
+  connected_at      DATETIME     NOT NULL,
+  synced_at         DATETIME     NULL,
+  UNIQUE KEY uq_integration (user_id, provider),
+  CONSTRAINT fk_integrations_user FOREIGN KEY (user_id)
+    REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Ad accounts (or equivalent) discovered through an integration.
+CREATE TABLE IF NOT EXISTS integration_accounts (
+  integration_id  VARCHAR(32)  NOT NULL,
+  account_id      VARCHAR(64)  NOT NULL,
+  name            VARCHAR(255) NULL,
+  currency        VARCHAR(8)   NULL,
+  timezone        VARCHAR(64)  NULL,
+  account_status  INT          NULL,
+  business_name   VARCHAR(255) NULL,
+  PRIMARY KEY (integration_id, account_id),
+  CONSTRAINT fk_int_accounts FOREIGN KEY (integration_id)
+    REFERENCES integrations(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- =============================================================================
+-- Reports: any uploaded xlsx/csv (Meta Ads Manager exports or otherwise).
+-- Rows are stored as JSON arrays aligned with `columns`.
+-- =============================================================================
+
+CREATE TABLE IF NOT EXISTS reports (
+  id              VARCHAR(32)  NOT NULL PRIMARY KEY,
+  user_id         VARCHAR(32)  NOT NULL,
+  name            VARCHAR(255) NOT NULL,
+  filename        VARCHAR(512) NULL,
+  source          VARCHAR(32)  NULL,
+  columns_json    JSON         NOT NULL,
+  row_count       INT          NOT NULL DEFAULT 0,
+  date_from       DATE         NULL,
+  date_to         DATE         NULL,
+  summary_json    JSON         NULL,
+  created_at      DATETIME     NOT NULL,
+  KEY idx_reports_user (user_id, created_at),
+  CONSTRAINT fk_reports_user FOREIGN KEY (user_id)
+    REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS report_rows (
+  report_id       VARCHAR(32)  NOT NULL,
+  idx             INT          NOT NULL,
+  data            JSON         NOT NULL,
+  PRIMARY KEY (report_id, idx),
+  CONSTRAINT fk_report_rows FOREIGN KEY (report_id)
+    REFERENCES reports(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- =============================================================================
+-- Analytics (conversion CSVs). Scoped per user via user_id.
+-- =============================================================================
+
 CREATE TABLE IF NOT EXISTS analytics_campaigns (
   id              VARCHAR(64)  NOT NULL PRIMARY KEY,
+  user_id         VARCHAR(32)  NULL,
   name            VARCHAR(255) NOT NULL,
   created_at      DATETIME     NOT NULL,
   last_upload_at  DATETIME     NULL,
   linked_metas    JSON         NULL,
-  meta            JSON         NULL
+  meta            JSON         NULL,
+  KEY idx_campaign_user (user_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS analytics_uploads (

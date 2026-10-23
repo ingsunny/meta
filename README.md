@@ -1,36 +1,75 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# Toosio
 
-## Getting Started
+Ads, analytics and reporting for every ad account you run. Multi-user: each person signs up, connects their own Meta login (read-only), and sees only their own data.
 
-First, run the development server:
+| Tool | What it does | Needs Meta? |
+|---|---|---|
+| **Ads Manager** | Campaigns, ad sets, ads, breakdowns, creative previews across every Meta ad account the user can access | Yes |
+| **Analytics** | Upload conversion CSVs from your tracker; funnel, geo, device, quality, forecast, match against Meta spend | Optional |
+| **Reports** | Upload any Meta Ads Manager export (.xlsx / .csv) or other spreadsheet → KPIs, trend, top-N, grouped table, CSV export | No |
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+Archived (not built): CAPI sender, Journey, Tracker. See [archive/README.md](archive/README.md).
+
+## Setup
+
+1. **MySQL 8.** Any instance works. For local dev:
+
+   ```bash
+   docker run -d --name toosio-mysql --restart unless-stopped \
+     -e MYSQL_ROOT_PASSWORD=<password> -e MYSQL_DATABASE=toosio \
+     -p 127.0.0.1:3307:3306 -v toosio-mysql-data:/var/lib/mysql mysql:8.4
+   ```
+
+2. **`.env.local`**
+
+   ```bash
+   DB_HOST=127.0.0.1
+   DB_PORT=3307
+   DB_USER=root
+   DB_PASSWORD=<password>
+   DB_NAME=toosio
+
+   TOKEN_ENCRYPTION_KEY=<openssl rand -hex 32>   # encrypts stored Meta tokens; don't change once users connect
+
+   # Facebook Login (optional until your Meta app is set up)
+   FB_APP_ID=
+   FB_APP_SECRET=
+   APP_URL=http://localhost:3055
+   ```
+
+3. **Install, create tables, run**
+
+   ```bash
+   npm install
+   npm run db:init
+   npm run dev        # http://localhost:3055
+   ```
+
+   On Linux, if the build fails with `Cannot find module '@tailwindcss/oxide-linux-x64-gnu'`, the lockfile came from another OS: `npm i --no-save @tailwindcss/oxide-linux-x64-gnu`.
+
+## Connecting Meta
+
+Users connect from **Integrations**:
+
+- **Continue with Facebook** (OAuth). Appears once `FB_APP_ID` / `FB_APP_SECRET` are set. Requests `ads_read` + `business_management` only, so the app can't change anything in Meta. Redirect URI: `${APP_URL}/api/integrations/meta/callback`. Going public needs Meta App Review; see [docs/facebook-login-multi-user.md](docs/facebook-login-multi-user.md).
+- **Paste an access token.** Always available. Useful in dev and before App Review.
+
+Tokens are AES-256-GCM encrypted at rest and never sent to the browser.
+
+## How auth works
+
+- Email + password, hashed with scrypt.
+- Sessions live in the `sessions` table; the cookie holds a random token and the DB stores only its SHA-256.
+- `src/proxy.js` redirects signed-out requests to `/login`; every layout and API route re-validates the session against the DB.
+- Analytics campaigns and reports are scoped by `user_id` in the storage layer.
+
+## Layout
+
 ```
-
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+src/app/(auth)/        login, signup
+src/app/(app)/         home, meta (Ads Manager), analytics, reports, integrations, settings
+src/app/api/           auth, account, integrations/meta, meta/*, analytics/*, reports/*
+src/lib/auth/          sessions, password hashing, token encryption
+src/lib/integrations/  per-user Meta connection
+src/lib/reports/       file parsing, column detection, aggregation
+```

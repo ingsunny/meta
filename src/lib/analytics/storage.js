@@ -10,8 +10,17 @@
 // All exports return the same JS shapes the file-based store used, so the
 // API layer / route handlers / insights code didn't have to change much —
 // only that calls now have to be awaited.
+//
+// Every campaign belongs to a user. Campaign-level reads/writes are scoped to
+// the signed-in user here, so route handlers get ownership checks for free:
+// someone else's campaign id simply reads as "not found".
 
 import { query, one, exec } from "@/lib/db";
+import { getCurrentUser } from "@/lib/auth/session";
+
+async function currentUserId() {
+  return (await getCurrentUser())?.id || null;
+}
 
 // ── helpers ────────────────────────────────────────────────────────────
 function newCampaignId() {
@@ -128,7 +137,9 @@ export async function listCampaigns() {
   const rows = await query(
     `SELECT id, name, created_at, last_upload_at, linked_metas, meta
        FROM analytics_campaigns
+      WHERE user_id = ?
       ORDER BY created_at DESC`,
+    [await currentUserId()],
   );
   return Promise.all(rows.map(rowToCampaign));
 }
@@ -136,8 +147,8 @@ export async function listCampaigns() {
 export async function getCampaign(id) {
   const r = await one(
     `SELECT id, name, created_at, last_upload_at, linked_metas, meta
-       FROM analytics_campaigns WHERE id = ?`,
-    [id],
+       FROM analytics_campaigns WHERE id = ? AND user_id = ?`,
+    [id, await currentUserId()],
   );
   return rowToCampaign(r);
 }
@@ -145,20 +156,22 @@ export async function getCampaign(id) {
 export async function createCampaign(name) {
   const trimmed = (name || "").trim();
   if (!trimmed) throw new Error("Campaign name is required");
+  const userId = await currentUserId();
+  if (!userId) throw new Error("Not signed in");
   const id = newCampaignId();
   const now = mysqlDate(new Date().toISOString());
   await exec(
-    `INSERT INTO analytics_campaigns (id, name, created_at, linked_metas, meta)
-     VALUES (?, ?, ?, '[]', '{}')`,
-    [id, trimmed, now],
+    `INSERT INTO analytics_campaigns (id, user_id, name, created_at, linked_metas, meta)
+     VALUES (?, ?, ?, ?, '[]', '{}')`,
+    [id, userId, trimmed, now],
   );
   return getCampaign(id);
 }
 
 export async function deleteCampaign(id) {
   const r = await exec(
-    "DELETE FROM analytics_campaigns WHERE id = ?",
-    [id],
+    "DELETE FROM analytics_campaigns WHERE id = ? AND user_id = ?",
+    [id, await currentUserId()],
   );
   return { removed: r?.affectedRows || 0 };
 }

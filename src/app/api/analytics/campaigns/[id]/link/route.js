@@ -100,6 +100,12 @@ export async function PUT(req, { params }) {
 
 export async function DELETE(_req, { params }) {
   const { id } = await params;
+  if (!(await getCampaign(id))) {
+    return NextResponse.json(
+      { success: false, error: "Campaign not found" },
+      { status: 404 },
+    );
+  }
   const next = await setLinkedMetas(id, []);
   return NextResponse.json({ success: true, campaign: next });
 }

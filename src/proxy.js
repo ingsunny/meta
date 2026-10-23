@@ -1,39 +1,40 @@
-// Auth proxy (renamed from middleware in Next 16). Gates every page + API
-// route behind a hardcoded passcode. If the `fb_ads_auth` cookie isn't
-// present (or has the wrong value), redirect to /login with the original
-// destination in `?next=` so we can bounce back after a successful unlock.
+// Auth proxy (renamed from middleware in Next 16). Cheap first gate: no
+// session cookie → pages redirect to /login, APIs get a 401. The cookie is
+// fully validated against the sessions table by `getCurrentUser()` in every
+// layout and route handler, so a forged cookie gets no further than this.
 //
-// Matched paths exclude /login, /api/login, and Next.js internals so the
-// login flow itself isn't gated.
+// Matcher excludes Next internals and the large-file upload routes — the
+// proxy buffers request bodies, which breaks big CSV/XLSX uploads. Those
+// routes check the session themselves.
 
 import { NextResponse } from "next/server";
 
-const AUTH_COOKIE = "fb_ads_auth";
-const AUTH_VALUE = "unlocked-v1";
+const SESSION_COOKIE = "toosio_session";
+const PUBLIC_PAGES = ["/login", "/signup"];
 
 export function proxy(request) {
-  const cookie = request.cookies.get(AUTH_COOKIE);
-  if (cookie?.value === AUTH_VALUE) {
+  const { pathname, search } = request.nextUrl;
+
+  if (PUBLIC_PAGES.includes(pathname) || pathname.startsWith("/api/auth/")) {
     return NextResponse.next();
   }
 
+  if (request.cookies.get(SESSION_COOKIE)?.value) {
+    return NextResponse.next();
+  }
+
+  if (pathname.startsWith("/api/")) {
+    return NextResponse.json({ success: false, error: "Not signed in" }, { status: 401 });
+  }
+
   const url = request.nextUrl.clone();
-  const originalPath = url.pathname + (url.search || "");
   url.pathname = "/login";
-  url.search = `?next=${encodeURIComponent(originalPath)}`;
+  url.search = pathname === "/" ? "" : `?next=${encodeURIComponent(pathname + (search || ""))}`;
   return NextResponse.redirect(url);
 }
 
 export const config = {
   matcher: [
-    // Run on everything except: /login, /api/login, _next/static,
-    // _next/image, favicon.ico, robots, sitemap, and any public image.
-    //
-    // Also exclude the analytics CSV upload endpoint — the proxy buffers
-    // the request body so it can read cookies, which breaks large daily
-    // exports past Next's default 10MB cap. We don't need auth at the
-    // edge for that route; the login cookie still gates the UI page that
-    // triggers the upload, so it isn't an open endpoint.
-    "/((?!login|api/login|api/analytics/campaigns/[^/]+/upload|api/journey/import|_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml).*)",
+    "/((?!api/analytics/campaigns/[^/]+/upload|api/reports/upload|_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml).*)",
   ],
 };

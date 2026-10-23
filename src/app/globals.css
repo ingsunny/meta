@@ -3,49 +3,49 @@
 @import "shadcn/tailwind.css";
 
 @theme {
-  /* Cool, Facebook-style neutrals */
-  --color-ink-50: #f7f8fa;
-  --color-ink-100: #f0f2f5;
-  --color-ink-200: #e4e6eb;
-  --color-ink-300: #ced0d4;
-  --color-ink-400: #b0b3b8;
-  --color-ink-500: #8a8d91;
-  --color-ink-600: #65676b;
-  --color-ink-700: #4a4d52;
-  --color-ink-800: #1c1e21;
-  --color-ink-900: #050505;
+  /* Warm paper neutrals — the canvas everything sits on */
+  --color-ink-50: #faf9f6;
+  --color-ink-100: #f4f3ef;
+  --color-ink-200: #e7e5df;
+  --color-ink-300: #d3d0c8;
+  --color-ink-400: #a9a59c;
+  --color-ink-500: #85817a;
+  --color-ink-600: #615e58;
+  --color-ink-700: #45433f;
+  --color-ink-800: #23221f;
+  --color-ink-900: #121212;
 
-  /* Facebook brand blue */
-  --color-brand-50: #ebf2fe;
-  --color-brand-100: #d6e4fd;
-  --color-brand-200: #a8c4fb;
-  --color-brand-400: #4d8bf6;
-  --color-brand-500: #1877f2;
-  --color-brand-600: #166fe5;
-  --color-brand-700: #1664d0;
+  /* Indigo accent — the only brand color */
+  --color-brand-50: #eef0ff;
+  --color-brand-100: #e0e4ff;
+  --color-brand-200: #c3c9fe;
+  --color-brand-400: #7f86f8;
+  --color-brand-500: #5b5ff0;
+  --color-brand-600: #4a4ad9;
+  --color-brand-700: #3b3ab3;
 
   /* Semantic — meaning only */
-  --color-good: #31a24c;
-  --color-good-soft: #e3f5e7;
-  --color-warn: #c47f00;
-  --color-warn-soft: #fff4d6;
-  --color-bad: #e02d3c;
-  --color-bad-soft: #ffe7e9;
+  --color-good: #1f9d55;
+  --color-good-soft: #e3f4ea;
+  --color-warn: #b7791f;
+  --color-warn-soft: #fbf0d9;
+  --color-bad: #d64545;
+  --color-bad-soft: #fbe5e5;
 
   /* Comparison series — chart-only */
-  --color-series-1: #1877f2;
-  --color-series-2: #f7b928;
-  --color-series-3: #8b5cf6;
+  --color-series-1: #5b5ff0;
+  --color-series-2: #e8a33d;
+  --color-series-3: #2bb3a3;
 
   --font-sans: var(--font-sans);
   --font-mono: var(--font-mono);
+  --font-display: var(--font-display);
 
-  /* Custom soft shadows for that "real product" depth */
-  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.06), 0 0 0 1px rgba(0, 0, 0, 0.04);
+  --shadow-card: 0 1px 2px rgba(18, 18, 18, 0.04), 0 0 0 1px rgba(18, 18, 18, 0.06);
   --shadow-lift:
-    0 4px 12px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04),
-    0 0 0 1px rgba(0, 0, 0, 0.04);
-  --shadow-pop: 0 12px 32px rgba(0, 0, 0, 0.12), 0 4px 8px rgba(0, 0, 0, 0.05);
+    0 8px 24px -8px rgba(18, 18, 18, 0.1), 0 1px 2px rgba(18, 18, 18, 0.04),
+    0 0 0 1px rgba(18, 18, 18, 0.06);
+  --shadow-pop: 0 20px 48px -12px rgba(18, 18, 18, 0.22), 0 4px 8px rgba(18, 18, 18, 0.05);
 }
 
 @layer base {
@@ -55,24 +55,70 @@
   body {
     background: var(--color-ink-100);
   }
+  ::selection {
+    background: var(--color-brand-100);
+    color: var(--color-ink-900);
+  }
   .tabular {
     font-variant-numeric: tabular-nums;
     font-feature-settings: "tnum";
+  }
+  .font-display {
+    font-family: var(--font-display), Georgia, serif;
+    font-weight: 400;
+    letter-spacing: -0.01em;
   }
   /* card surfaces */
   .surface {
     background: #ffffff;
     box-shadow: var(--shadow-card);
-    border-radius: 12px;
+    border-radius: 14px;
   }
   .surface-lift {
     background: #ffffff;
     box-shadow: var(--shadow-lift);
-    border-radius: 12px;
+    border-radius: 14px;
+  }
+  /* Film grain — sits over the canvas at very low opacity */
+  .grain {
+    position: relative;
+    isolation: isolate;
+  }
+  .grain::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    opacity: 0.35;
+    mix-blend-mode: multiply;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.45  0 0 0 0 0.42  0 0 0 0 0.38  0 0 0 0.16 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  }
+  .dot-grid {
+    background-image: radial-gradient(rgba(255, 255, 255, 0.14) 1px, transparent 1px);
+    background-size: 22px 22px;
   }
   input[type="number"]::-webkit-inner-spin-button,
   input[type="number"]::-webkit-outer-spin-button {
     -webkit-appearance: none;
     margin: 0;
+  }
+}
+
+@keyframes float-y {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+.animate-float {
+  animation: float-y 6s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-float {
+    animation: none;
   }
 }

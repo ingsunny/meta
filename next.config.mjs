@@ -15,6 +15,10 @@
 
 const nextConfig = {
   reactCompiler: true,
+  // The floating dev badge sits on top of the sidebar's user card.
+  devIndicators: false,
+  // A lockfile in a parent folder makes Next guess the wrong workspace root.
+  turbopack: { root: import.meta.dirname },
 };
 
 export default nextConfig;

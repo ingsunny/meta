@@ -8,7 +8,7 @@
     "start": "next start -p 3055",
     "db:init": "node scripts/db-init.mjs",
     "db:migrate": "node scripts/db-migrate.mjs",
-    "db:import-journey": "node scripts/import-journey.mjs"
+    "db:import-journey": "node archive/scripts/import-journey.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.3.0",

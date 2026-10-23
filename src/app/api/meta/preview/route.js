@@ -4,8 +4,8 @@
 
 import { NextResponse } from "next/server";
 import axios from "axios";
+import { getMetaToken, metaNotConnected } from "@/lib/meta/accounts";
 
-const FB_TOKEN = process.env.FB_TOKEN;
 const API_VERSION = "v25.0";
 
 // Meta's documented ad_format enum. We expose the most useful placements.
@@ -28,6 +28,8 @@ const ALLOWED_FORMATS = new Set([
 ]);
 
 export async function GET(req) {
+  const token = await getMetaToken();
+  if (!token) return metaNotConnected();
   const { searchParams } = new URL(req.url);
   const adId = searchParams.get("ad");
   const requestedFormat = searchParams.get("format") || "MOBILE_FEED_STANDARD";
@@ -45,7 +47,7 @@ export async function GET(req) {
       {
         params: {
           ad_format: format,
-          access_token: FB_TOKEN,
+          access_token: token,
         },
       },
     );

@@ -4,19 +4,20 @@
 
 import { NextResponse } from "next/server";
 import axios from "axios";
-import { getAccounts, resolveAccountId } from "@/lib/meta/accounts";
+import { getAccounts, resolveAccountId, getMetaToken, metaNotConnected } from "@/lib/meta/accounts";
 import { buildCampaignReport, sanitizeFilename } from "@/lib/meta/report";
 import { resolveRange, insightsModifier } from "@/lib/meta/range";
 
-const FB_TOKEN = process.env.FB_TOKEN;
 const API_VERSION = "v25.0";
 
 export async function GET(req) {
+  const token = await getMetaToken();
+  if (!token) return metaNotConnected();
   const { searchParams } = new URL(req.url);
   const campaignId = searchParams.get("campaign");
   const range = resolveRange(searchParams);
   const mod = insightsModifier(range);
-  const accountId = resolveAccountId(searchParams.get("account"));
+  const accountId = await resolveAccountId(searchParams.get("account"));
 
   if (!campaignId) {
     return NextResponse.json({ error: "Missing campaign id" }, { status: 400 });
@@ -65,7 +66,7 @@ export async function GET(req) {
 
     const [campaignRes, accounts] = await Promise.all([
       axios.get(`https://graph.facebook.com/${API_VERSION}/${campaignId}`, {
-        params: { fields, access_token: FB_TOKEN },
+        params: { fields, access_token: token },
       }),
       getAccounts(),
     ]);

@@ -9,7 +9,7 @@
 import axios from "axios";
 import { getActiveEvents, getLinkedMetas } from "./storage";
 import { computeInsights } from "./insights";
-import { getAccounts } from "../meta/accounts";
+import { getAccounts, getMetaToken } from "../meta/accounts";
 
 const API_VERSION = "v25.0";
 const DEFAULT_INR_PER_USD = 83;
@@ -203,13 +203,13 @@ export async function buildMatch({ analyticsCampaign }) {
   const analytics = computeInsights(events);
   const range = analyticsRange(events);
 
-  const token = process.env.FB_TOKEN;
+  const token = await getMetaToken();
   if (!token) {
     return {
       linked: true,
       links,
       range,
-      metaError: "FB_TOKEN missing — set it in .env.local",
+      metaError: "Connect your Meta account in Integrations to compare against Meta spend.",
     };
   }
 

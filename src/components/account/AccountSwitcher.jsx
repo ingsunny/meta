@@ -71,7 +71,7 @@ export function AccountSwitcher() {
       {open && (
         <div
           role="listbox"
-          className="absolute right-0 mt-2 w-72 rounded-xl bg-white shadow-pop overflow-hidden z-50 animate-in fade-in slide-in-from-top-1 duration-150"
+          className="absolute left-0 mt-2 w-80 rounded-xl bg-white shadow-pop overflow-hidden z-50 animate-in fade-in slide-in-from-top-1 duration-150"
         >
           <div className="px-4 py-2 border-b border-ink-100">
             <p className="text-[10px] font-bold uppercase tracking-wider text-ink-500">

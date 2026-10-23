@@ -4,12 +4,14 @@
 
 import { NextResponse } from "next/server";
 import axios from "axios";
+import { getMetaToken, metaNotConnected } from "@/lib/meta/accounts";
 import { resolveRange, insightsQueryParams } from "@/lib/meta/range";
 
-const FB_TOKEN = process.env.FB_TOKEN;
 const API_VERSION = "v25.0";
 
 export async function GET(req) {
+  const token = await getMetaToken();
+  if (!token) return metaNotConnected();
   const { searchParams } = new URL(req.url);
   const id = searchParams.get("id");
   if (!id) {
@@ -48,7 +50,7 @@ export async function GET(req) {
           fields,
           time_increment: 1,
           limit: 500,
-          access_token: FB_TOKEN,
+          access_token: token,
           ...insightsQueryParams(qsRange),
         },
       },

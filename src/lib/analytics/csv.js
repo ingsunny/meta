@@ -2,7 +2,7 @@
 // receive daily. State-machine handles quoted fields, embedded commas,
 // CRLF line endings, and doubled-quote escapes. No external deps.
 
-function parseCSV(text) {
+export function parseCSV(text, delimiter = ",") {
   const rows = [];
   let row = [];
   let field = "";
@@ -35,7 +35,7 @@ function parseCSV(text) {
       i++;
       continue;
     }
-    if (c === ",") {
+    if (c === delimiter) {
       row.push(field);
       field = "";
       i++;

@@ -1,20 +1,22 @@
 import { NextResponse } from "next/server";
 import axios from "axios";
-import { resolveAccountId } from "@/lib/meta/accounts";
+import { resolveAccountId, getMetaToken, metaNotConnected } from "@/lib/meta/accounts";
+import { graphErrorMessage } from "@/lib/integrations/meta";
 import { resolveRange, insightsModifier } from "@/lib/meta/range";
 
-const FB_TOKEN = process.env.FB_TOKEN;
 const API_VERSION = "v25.0";
 
 export async function GET(req) {
+  const token = await getMetaToken();
+  if (!token) return metaNotConnected();
   const { searchParams } = new URL(req.url);
   const range = resolveRange(searchParams);
-  const accountId = resolveAccountId(searchParams.get("account"));
+  const accountId = await resolveAccountId(searchParams.get("account"));
 
   if (!accountId) {
     return NextResponse.json(
-      { error: "No ad account configured. Set AD_ACCOUNT_ID in .env.local." },
-      { status: 500 },
+      { error: "No ad accounts found on your Meta connection.", code: "no_accounts" },
+      { status: 404 },
     );
   }
 
@@ -54,7 +56,7 @@ export async function GET(req) {
       {
         params: {
           fields: campaignFields,
-          access_token: FB_TOKEN,
+          access_token: token,
           limit: 100,
         },
       },
@@ -69,7 +71,7 @@ export async function GET(req) {
   } catch (error) {
     console.error("Meta Fetch Error:", error.response?.data || error.message);
     return NextResponse.json(
-      { error: "Failed to fetch campaigns" },
+      { error: graphErrorMessage(error) },
       { status: 500 },
     );
   }

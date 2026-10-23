@@ -1,11 +1,11 @@
 export function PageHeader({ eyebrow, title, sub, right }) {
   return (
-    <header className="flex flex-wrap items-end justify-between gap-6 pt-7 pb-5">
+    <header className="flex flex-wrap items-end justify-between gap-6 pt-9 pb-6">
       <div className="min-w-0 flex-1">
         {eyebrow && (
           <div className="mb-2">
             {typeof eyebrow === "string" ? (
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-ink-500">
+              <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-brand-600">
                 {eyebrow}
               </p>
             ) : (
@@ -13,7 +13,7 @@ export function PageHeader({ eyebrow, title, sub, right }) {
             )}
           </div>
         )}
-        <h1 className="text-[26px] font-bold tracking-tight text-ink-900 leading-tight">
+        <h1 className="font-display text-[36px] text-ink-900 leading-[1.05]">
           {title}
         </h1>
         {sub && <p className="mt-1.5 text-sm text-ink-600 max-w-2xl">{sub}</p>}

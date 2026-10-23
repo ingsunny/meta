@@ -1,11 +1,13 @@
 import { NextResponse } from "next/server";
 import axios from "axios";
+import { getMetaToken, metaNotConnected } from "@/lib/meta/accounts";
 import { resolveRange, insightsModifier } from "@/lib/meta/range";
 
-const FB_TOKEN = process.env.FB_TOKEN;
 const API_VERSION = "v25.0";
 
 export async function GET(req, { params }) {
+  const token = await getMetaToken();
+  if (!token) return metaNotConnected();
   const { id } = await params;
   const { searchParams } = new URL(req.url);
   const range = resolveRange(searchParams);
@@ -83,7 +85,7 @@ export async function GET(req, { params }) {
 
     const res = await axios.get(
       `https://graph.facebook.com/${API_VERSION}/${id}`,
-      { params: { fields, access_token: FB_TOKEN } },
+      { params: { fields, access_token: token } },
     );
 
     return NextResponse.json({ success: true, range, data: res.data });
