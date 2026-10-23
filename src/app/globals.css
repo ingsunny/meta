@@ -1,0 +1,78 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@theme {
+  /* Cool, Facebook-style neutrals */
+  --color-ink-50: #f7f8fa;
+  --color-ink-100: #f0f2f5;
+  --color-ink-200: #e4e6eb;
+  --color-ink-300: #ced0d4;
+  --color-ink-400: #b0b3b8;
+  --color-ink-500: #8a8d91;
+  --color-ink-600: #65676b;
+  --color-ink-700: #4a4d52;
+  --color-ink-800: #1c1e21;
+  --color-ink-900: #050505;
+
+  /* Facebook brand blue */
+  --color-brand-50: #ebf2fe;
+  --color-brand-100: #d6e4fd;
+  --color-brand-200: #a8c4fb;
+  --color-brand-400: #4d8bf6;
+  --color-brand-500: #1877f2;
+  --color-brand-600: #166fe5;
+  --color-brand-700: #1664d0;
+
+  /* Semantic — meaning only */
+  --color-good: #31a24c;
+  --color-good-soft: #e3f5e7;
+  --color-warn: #c47f00;
+  --color-warn-soft: #fff4d6;
+  --color-bad: #e02d3c;
+  --color-bad-soft: #ffe7e9;
+
+  /* Comparison series — chart-only */
+  --color-series-1: #1877f2;
+  --color-series-2: #f7b928;
+  --color-series-3: #8b5cf6;
+
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+
+  /* Custom soft shadows for that "real product" depth */
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.06), 0 0 0 1px rgba(0, 0, 0, 0.04);
+  --shadow-lift:
+    0 4px 12px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04),
+    0 0 0 1px rgba(0, 0, 0, 0.04);
+  --shadow-pop: 0 12px 32px rgba(0, 0, 0, 0.12), 0 4px 8px rgba(0, 0, 0, 0.05);
+}
+
+@layer base {
+  html {
+    @apply font-sans text-ink-800 antialiased;
+  }
+  body {
+    background: var(--color-ink-100);
+  }
+  .tabular {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
+  }
+  /* card surfaces */
+  .surface {
+    background: #ffffff;
+    box-shadow: var(--shadow-card);
+    border-radius: 12px;
+  }
+  .surface-lift {
+    background: #ffffff;
+    box-shadow: var(--shadow-lift);
+    border-radius: 12px;
+  }
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+}
